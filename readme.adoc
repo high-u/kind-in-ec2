@@ -1,0 +1,61 @@
+= Kind in EC2
+
+== Create instance
+
+[source,bash]
+----
+key="xxxxx"
+region="ap-northeast-1"
+sg="sg-003539ce1041acbd4"
+instancetype="c5.xlarge"
+ami="ami-052652af12b58691f"
+ebssize=128
+userdatapath="file://userdata.sh"
+tag="ResourceType=instance,Tags=[{Key=Name,Value=higuchi-working-machine}]"
+mappings="[{\"DeviceName\":\"/dev/xvda\",\"Ebs\":{\"VolumeSize\":${ebssize},\"DeleteOnTermination\":true}}]"
+
+aws ec2 run-instances --dry-run \
+  --region ${region} \
+  --image-id ${ami}\
+  --count 1 \
+  --instance-type ${instancetype} \
+  --key-name ${key} \
+  --associate-public-ip-address \
+  --security-group-ids ${sg} \
+  --tag-specifications ${tag} \
+  --block-device-mappings ${mappings} \
+  --user-data ${userdatapath} \
+> result.json
+----
+
+== SSH
+
+* Processing userdata
+
+[source,bash]
+----
+tail -f /var/log/user-data.log
+----
+
+* After userdata processing
+
+[source,bash]
+----
+source ~/.bash_profile
+----
+
+* Show userdata
+
+[source,bash]
+----
+curl http://169.254.169.254/latest/user-data
+----
+
+== Terminate instance
+
+[source,bash]
+----
+instanceid=$(cat result.json | jq -r '.Instances[0].InstanceId')
+aws ec2 terminate-instances --instance-ids ${instanceid}
+----
+
